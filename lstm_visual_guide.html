@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSTM 쉽게 이해하기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .section {
+            background: white;
+            margin: 30px 0;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .section:hover {
+            transform: translateY(-5px);
+        }
+        
+        .section h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 2em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .comparison-item {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .problem {
+            background: #fed7d7;
+            border: 2px solid #e53e3e;
+        }
+        
+        .solution {
+            background: #c6f6d5;
+            border: 2px solid #38a169;
+        }
+        
+        .lstm-architecture {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .gate {
+            width: 120px;
+            height: 80px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .gate:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .forget-gate {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        }
+        
+        .input-gate {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+        
+        .output-gate {
+            background: linear-gradient(45deg, #45b7d1, #2980b9);
+        }
+        
+        .cell-state {
+            background: linear-gradient(45deg, #96ceb4, #689f7c);
+            width: 200px;
+            height: 60px;
+            margin: 20px;
+        }
+        
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .step {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 180px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .step:hover {
+            transform: scale(1.05);
+        }
+        
+        .step-number {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .example {
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .example:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .example h3 {
+            color: #2d3436;
+            margin-bottom: 10px;
+        }
+        
+        .memory-demo {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+        
+        .memory-bar {
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .memory-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 1s ease;
+        }
+        
+        .interactive-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .interactive-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .formula {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #667eea;
+        }
+        
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .lstm-architecture {
+                flex-direction: column;
+            }
+            
+            .flow-diagram {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🧠 LSTM 쉽게 이해하기</h1>
+            <p>Long Short-Term Memory Network</p>
+        </header>
+
+        <section class="section">
+            <h2>🤔 LSTM이 왜 필요할까?</h2>
+            <div class="comparison">
+                <div class="comparison-item problem">
+                    <h3>😵 기존 RNN의 문제</h3>
+                    <p><strong>건망증이 심해요!</strong></p>
+                    <p>"나는 프랑스에서 자랐고... (긴 이야기)... 그래서 나는 ___어를 구사한다"</p>
+                    <p>→ "프랑스"를 까먹어서 답을 못해요 😅</p>
+                </div>
+                <div class="comparison-item solution">
+                    <h3>💡 LSTM의 해결책</h3>
+                    <p><strong>선택적 기억력!</strong></p>
+                    <p>중요한 정보는 오래 기억하고<br>불필요한 정보는 빨리 잊어버려요</p>
+                    <p>→ "프랑스" → "불어" 연결 성공! 🎉</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🏗️ LSTM의 구조</h2>
+            <p style="text-align: center; margin-bottom: 20px;">LSTM은 3개의 <strong>"문지기"</strong>가 있어요!</p>
+            
+            <div class="lstm-architecture">
+                <div class="gate forget-gate" onclick="showGateInfo('forget')">
+                    🚪<br>망각 게이트<br><small>버릴 정보 선택</small>
+                </div>
+                <div class="gate input-gate" onclick="showGateInfo('input')">
+                    📥<br>입력 게이트<br><small>저장할 정보 선택</small>
+                </div>
+                <div class="cell-state">
+                    🧠<br>Cell State<br><small>장기 기억 저장소</small>
+                </div>
+                <div class="gate output-gate" onclick="showGateInfo('output')">
+                    📤<br>출력 게이트<br><small>출력할 정보 선택</small>
+                </div>
+            </div>
+            
+            <div id="gate-info" class="highlight-box" style="display: none;">
+                <p id="gate-description"></p>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>⚡ LSTM 동작 과정</h2>
+            <div class="flow-diagram">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h4>망각</h4>
+                    <p>불필요한 정보 삭제</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h4>선택</h4>
+                    <p>새 정보 중 중요한 것만</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h4>업데이트</h4>
+                    <p>기억 저장소 갱신</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h4>출력</h4>
+                    <p>필요한 정보만 내보내기</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🎯 실제 예시</h2>
+            <div class="examples">
+                <div class="example">
+                    <h3>📱 번역기</h3>
+                    <p>"안녕하세요" → "Hello"</p>
+                    <p>문장의 의미를 기억하면서 번역해요!</p>
+                </div>
+                <div class="example">
+                    <h3>📈 주가 예측</h3>
+                    <p>과거 주가 패턴을 기억해서<br>미래 주가를 예측해요!</p>
+                </div>
+                <div class="example">
+                    <h3>🎵 음성 인식</h3>
+                    <p>"안녕하세요" (음성)<br>→ "안녕하세요" (텍스트)</p>
+                </div>
+                <div class="example">
+                    <h3>🤖 챗봇</h3>
+                    <p>대화 맥락을 기억해서<br>자연스러운 답변을 해요!</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🧪 기억력 테스트</h2>
+            <div class="memory-demo">
+                <p><strong>시나리오:</strong> "나는 한국에서 태어났고, 어릴 때 미국으로 이민을 갔다. 10년 후 다시 일본으로 이사했고, 현재는 프랑스에 살고 있다. 그래서 나는 ___어를 할 수 있다."</p>
+                
+                <button class="interactive-btn" onclick="testMemory('korean')">한국어</button>
+                <button class="interactive-btn" onclick="testMemory('english')">영어</button>
+                <button class="interactive-btn" onclick="testMemory('japanese')">일본어</button>
+                <button class="interactive-btn" onclick="testMemory('french')">프랑스어</button>
+                
+                <div id="memory-result" style="margin-top: 20px; font-weight: bold;"></div>
+                
+                <h4>각 언어별 기억 강도:</h4>
+                <div>
+                    <p>한국어 (태어난 곳): <div class="memory-bar"><div class="memory-fill" id="korean-bar" style="width: 70%"></div></div></p>
+                    <p>영어 (10년 거주): <div class="memory-bar"><div class="memory-fill" id="english-bar" style="width: 90%"></div></div></p>
+                    <p>일본어 (과거 거주): <div class="memory-bar"><div class="memory-fill" id="japanese-bar" style="width: 60%"></div></div></p>
+                    <p>프랑스어 (현재 거주): <div class="memory-bar"><div class="memory-fill" id="french-bar" style="width: 100%"></div></div></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>📐 핵심 공식 (간단 버전)</h2>
+            <div class="highlight-box">
+                <p><strong>LSTM의 마법 공식:</strong></p>
+                <div class="formula">
+                    새로운 기억 = (이전 기억 × 망각률) + (새 정보 × 중요도)
+                </div>
+                <p style="text-align: center;">
+                    🧠 = (🧠₍이전₎ × 🚪) + (📝₍새로운₎ × 📥)
+                </p>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🎓 핵심 정리</h2>
+            <div class="highlight-box">
+                <h3>✨ LSTM의 특별한 점:</h3>
+                <ul style="font-size: 1.1em; line-height: 2;">
+                    <li>🧠 <strong>장기 기억</strong>: 중요한 정보를 오래 기억해요</li>
+                    <li>🎯 <strong>선택적 기억</strong>: 필요한 것만 골라서 기억해요</li>
+                    <li>🚪 <strong>게이트 시스템</strong>: 3개의 문지기가 정보를 관리해요</li>
+                    <li>🔄 <strong>연속 학습</strong>: 시간 순서대로 학습해요</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🚀 다음 단계</h2>
+            <div class="examples">
+                <div class="example">
+                    <h3>🔬 더 깊이 배우기</h3>
+                    <p>수학적 원리와<br>실제 코드 구현</p>
+                </div>
+                <div class="example">
+                    <h3>💻 직접 만들어보기</h3>
+                    <p>Python으로<br>나만의 LSTM 모델</p>
+                </div>
+                <div class="example">
+                    <h3>🌟 변형 모델들</h3>
+                    <p>GRU, Transformer<br>등 최신 기술</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function showGateInfo(gateType) {
+            const info = document.getElementById('gate-info');
+            const description = document.getElementById('gate-description');
+            
+            const gateDescriptions = {
+                'forget': '🚪 <strong>망각 게이트</strong>: "이 정보는 이제 필요 없으니 지워버리자!" 라고 결정하는 문지기예요. 0~1 사이의 값으로 얼마나 잊을지 정해요.',
+                'input': '📥 <strong>입력 게이트</strong>: "이 새로운 정보는 중요하니 기억하자!" 라고 결정하는 문지기예요. 새로운 정보 중에서 저장할 것들을 선택해요.',
+                'output': '📤 <strong>출력 게이트</strong>: "지금 이 정보를 밖으로 내보내자!" 라고 결정하는 문지기예요. 저장된 기억 중에서 출력할 부분을 선택해요.'
+            };
+            
+            description.innerHTML = gateDescriptions[gateType];
+            info.style.display = 'block';
+            
+            // 3초 후 자동으로 숨기기
+            setTimeout(() => {
+                info.style.display = 'none';
+            }, 5000);
+        }
+        
+        function testMemory(language) {
+            const results = {
+                'korean': '정답이에요! 하지만 태어난 곳이라 기억이 좀 흐릿할 수 있어요.',
+                'english': '정답이에요! 10년간 살아서 가장 유창할 거예요.',
+                'japanese': '정답이에요! 과거에 살았던 곳이라 어느 정도 기억해요.',
+                'french': '대정답! 현재 살고 있어서 가장 생생하게 기억하고 있어요! 🎉'
+            };
+            
+            const resultDiv = document.getElementById('memory-result');
+            resultDiv.innerHTML = results[language];
+            resultDiv.style.color = language === 'french' ? '#38a169' : '#667eea';
+            
+            // 메모리 바 애니메이션
+            const bars = ['korean-bar', 'english-bar', 'japanese-bar', 'french-bar'];
+            bars.forEach(bar => {
+                const element = document.getElementById(bar);
+                element.style.width = '0%';
+                setTimeout(() => {
+                    element.style.width = bar.includes('korean') ? '70%' :
+                                         bar.includes('english') ? '90%' :
+                                         bar.includes('japanese') ? '60%' : '100%';
+                }, 500);
+            });
+        }
+        
+        // 페이지 로드 시 메모리 바 애니메이션
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('korean-bar').style.width = '70%';
+                document.getElementById('english-bar').style.width = '90%';
+                document.getElementById('japanese-bar').style.width = '60%';
+                document.getElementById('french-bar').style.width = '100%';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
